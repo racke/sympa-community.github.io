@@ -418,10 +418,30 @@ The goal is to block messages or other service requests from unwanted users. The
 `spam-status` special scenario
 ------------------------------
 
-The scenario `spam_status.x-spam-status` determines whether an incoming
-message is tagged as SPAM.
+The `spam_status` scenario has a very specific behaviour: it is not used to grant authorizations on actions, it only tags messages with the three following status: `ham`, `spam` or `unsure`.
 
-You can use the result in your *send* scenarios, common use cases are below.
+To use it, you will need to know what headers your antispam adds to messages, and how you can interpret them to categorize "ham" (legitimate message), "spam" (high probability that the message is a spam) and "unsure" (the antispam found clues but not enough to categorize it as spam).
+
+For example, let's say that:
+
+ - for a ham, no header is added
+ - for a spam, the antispam adds the header `X-Spam-Status: yes`
+ - the antispam adds the header `X-Spam-Level: ***...`, where most of the time, below 4 "*", it is unsure whether the message is a spam or not.
+
+You could have the following scenario:
+
+```
+title.gettext test x-spam-status  header
+
+match([header->X-Spam-Status][-1],/^\s*yes/)   smtp,dkim,smime,md5  -> spam
+match([header->X-Spam-Level][-1],/\*{5,}/)     smtp,dkim,smime,md5  -> spam
+match([header->X-Spam-Level][-1],/\*{0,4}/)    smtp,dkim,smime,md5  -> unsure
+true()	    			       	               smtp,dkim,md5,smime   -> ham
+```
+
+You have now set rules to tag messages according to their probability to be spam.
+
+Afterwards, you can use the `spam-status` rule in your `send` scenarios, as follows. The value of `[msg->spam_status]` is the one computed by the `spam_status` scenario according to the antispam headers.
 
 Reject the message:
 
@@ -434,6 +454,14 @@ Force moderation:
 ``` code
 equal([msg->spam_status],'spam')  smtp,md5,dkim,smime -> editorkey,quiet
 ```
+
+One can legitimately wonder why not use the rules of the `spam_status` scenario directly in the `send` scenario. It would lead to the same outcome int terms of moderation or rejection.
+It is because Sympa behaviour changes significantly according to the `spam_status` to protect people in charge of moderation.
+
+A message tagged as spam using the `spam_status`:
+
+ - is **not** forwarded along with the moderation notice,
+ - appears with a little dustbin next to its title in the list of messages to be moderated in the web interface to warn moderators.
 
 Hiding scenario files
 ---------------------
