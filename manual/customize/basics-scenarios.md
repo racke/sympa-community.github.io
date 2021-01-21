@@ -455,13 +455,17 @@ Force moderation:
 equal([msg->spam_status],'spam')  smtp,md5,dkim,smime -> editorkey,quiet
 ```
 
-One can legitimately wonder why not use the rules of the `spam_status` scenario directly in the `send` scenario. It would lead to the same outcome int terms of moderation or rejection.
+One can legitimately wonder why not use the rules of the `spam_status` scenario directly in the `send` scenario. It would lead to the same outcome in terms of moderation or rejection.
 It is because Sympa behaviour changes significantly according to the `spam_status` to protect people in charge of moderation.
 
 A message tagged as spam using the `spam_status`:
 
  - is **not** forwarded along with the moderation notice,
  - appears with a little dustbin next to its title in the list of messages to be moderated in the web interface to warn moderators.
+
+Another point is that the evaluation of the `spam_status` scenario is __always__ done for __any__ mail incoming to sympa. You can chose to use it or not in your `send` scenario but any message will have a `spam_status` attribute set, according to the content of the scenario file.
+
+The `spam_status` scenario file itself follows the exact same rules as any other scenario file: it is named after the value of the [`spam_status`](/gpldoc/man/sympa_config.5.html#spam_status) parameter (`spam_status.parameter_value`). Note that, if the scenario file is not found, the `spam_status` attribute will have the `unknown` value.
 
 Hiding scenario files
 ---------------------
